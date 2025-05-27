@@ -5,8 +5,15 @@ mercadopago.configure({
   access_token: process.env.MP_ACCESS_TOKEN!,
 });
 
+// Tipado de producto
+type CartItem = {
+  name: string;
+  quantity: number;
+  price: number;
+};
+
 export async function POST(req: NextRequest) {
-  const { items, email } = await req.json();
+  const { items, email }: { items: CartItem[]; email: string } = await req.json();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   if (!items || !Array.isArray(items) || items.length === 0 || !email) {
@@ -14,27 +21,20 @@ export async function POST(req: NextRequest) {
   }
 
   const products = items
-    .filter((item: any) => item.name && item.price > 0 && item.quantity > 0)
-    .map((item: any) => ({
-      title: String(item.name),
-      quantity: Number(item.quantity),
+    .filter((item) => item.name && item.price > 0 && item.quantity > 0)
+    .map((item) => ({
+      title: item.name,
+      quantity: item.quantity,
       currency_id: 'PEN',
-      unit_price: Number(item.price),
+      unit_price: item.price,
     }));
 
   console.log('🧾 Productos enviados a MercadoPago:', products);
 
   try {
     const preference = {
-      items: [
-        {
-          title: 'Producto de prueba',
-          quantity: 1,
-          currency_id: 'PEN',
-          unit_price: 10,
-        },
-      ],
-      payer: { email: 'cliente@test.com' },
+      items: products,
+      payer: { email },
       back_urls: {
         success: `${baseUrl}/success`,
         failure: `${baseUrl}/failure`,
